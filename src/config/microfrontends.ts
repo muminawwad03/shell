@@ -7,11 +7,11 @@ export interface MicrofrontendConfig {
    * How this zone is composed:
    * - "component": dynamically import `url` (an ES module that registers
    *   `tag` as a custom element as a side effect) and mount `tag`.
-   * - "iframe": embed `url` directly in an <iframe>. Fallback for a
-   *   microfrontend that hasn't (yet) exposed itself as a custom element —
-   *   works with zero changes on that member's side, at the cost of no
-   *   shared routing/state with the rest of the shell (per the project
-   *   brief's iframe-composition tradeoff).
+   * - "iframe": embed `url` directly in an <iframe>, unmodified — no
+   *   custom element required from that member. Used deliberately for
+   *   `cart`, not as a stopgap: zero coupling to a plain React/Vue SPA,
+   *   at the cost of no shared routing/state with the rest of the shell
+   *   (per the project brief's iframe-composition tradeoff).
    */
   embedMode: 'component' | 'iframe';
   /** Custom element tag name — required when embedMode is "component". */
@@ -26,9 +26,9 @@ export interface MicrofrontendConfig {
 }
 
 // Set these in a local .env file, e.g.:
-//   VITE_CATALOG_URL=http://localhost:5173/src/main.ts   (Mu'min's dev server)
-//   VITE_CART_URL=https://toy-store-cart.vercel.app        (Moayad — iframe for now)
-//   VITE_ACCOUNT_URL=https://account-<member>.vercel.app/account-app.js
+//   VITE_CATALOG_URL=http://localhost:5173/src/main.ts   (Mu'min's dev server, component mode)
+//   VITE_CART_URL=https://toy-store-cart.vercel.app        (Moayad, iframe mode — his deployed page URL)
+//   VITE_ACCOUNT_URL=https://account-<member>.vercel.app/account-app.js  (Danah, component mode)
 export const MICROFRONTENDS: MicrofrontendConfig[] = [
   {
     key: 'catalog',
@@ -42,9 +42,8 @@ export const MICROFRONTENDS: MicrofrontendConfig[] = [
     key: 'cart',
     label: 'Cart',
     path: '/cart',
-    // toy-store-cart is a plain React SPA (mounts into #root directly),
-    // not yet exposed as a custom element — iframe until Moayad wires up
-    // react-to-webcomponent to match the catalog/account pattern.
+    // toy-store-cart is a plain React SPA — embedded as-is via iframe,
+    // by design (see MicrofrontendConfig.embedMode docs above).
     embedMode: 'iframe',
     url: import.meta.env.VITE_CART_URL,
   },
