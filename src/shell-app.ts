@@ -38,7 +38,7 @@ export class ShellApp extends LitElement {
   @query('#mount')
   private _mount!: HTMLDivElement;
 
-  private _loadedScripts = new Set<string>();
+  private _loadedComponentScripts = new Set<string>();
   private _elements = new Map<string, HTMLElement>();
 
   static styles = css`
@@ -112,6 +112,14 @@ export class ShellApp extends LitElement {
       background: var(--md-sys-color-error-container);
       border-radius: var(--md-sys-shape-corner-large);
     }
+
+    .embed-iframe {
+      display: block;
+      width: 100%;
+      /* Sticky header is 3.5rem tall; fill the rest of the viewport. */
+      height: calc(100vh - 3.5rem);
+      border: 0;
+    }
   `;
 
   connectedCallback() {
@@ -151,27 +159,41 @@ export class ShellApp extends LitElement {
       el.style.display = 'none';
     }
 
-    if (!zone.scriptUrl) {
+    if (!zone.url) {
       // No live URL configured yet — placeholder handles rendering.
       return;
     }
 
+    if (zone.embedMode === 'iframe') {
+      let el = this._elements.get(zone.key) as HTMLIFrameElement | undefined;
+      if (!el) {
+        el = document.createElement('iframe');
+        el.className = 'embed-iframe';
+        el.src = zone.url;
+        el.title = zone.label;
+        this._elements.set(zone.key, el);
+        this._mount.appendChild(el);
+      }
+      el.style.display = '';
+      return;
+    }
+
     try {
-      if (!this._loadedScripts.has(zone.scriptUrl)) {
-        this._loadedScripts.add(zone.scriptUrl);
-        await import(/* @vite-ignore */ zone.scriptUrl);
+      if (!this._loadedComponentScripts.has(zone.url)) {
+        this._loadedComponentScripts.add(zone.url);
+        await import(/* @vite-ignore */ zone.url);
       }
 
       let el = this._elements.get(zone.key);
       if (!el) {
-        el = document.createElement(zone.tag);
+        el = document.createElement(zone.tag!);
         this._elements.set(zone.key, el);
         this._mount.appendChild(el);
       }
       el.style.display = '';
     } catch (err) {
-      this._loadedScripts.delete(zone.scriptUrl);
-      this._loadError = `Failed to load "${zone.label}" from ${zone.scriptUrl}: ${(err as Error).message}`;
+      this._loadedComponentScripts.delete(zone.url);
+      this._loadError = `Failed to load "${zone.label}" from ${zone.url}: ${(err as Error).message}`;
       this.requestUpdate();
     }
   }
@@ -188,7 +210,8 @@ export class ShellApp extends LitElement {
 
   render() {
     const zone = matchZone(this._pathname);
-    const showPlaceholder = !zone.scriptUrl && !this._loadError;
+    const showPlaceholder = !zone.url && !this._loadError;
+    const expected = zone.embedMode === 'iframe' ? 'deployed page URL' : `deployed ${zone.tag} bundle URL`;
 
     return html`
       <header>
@@ -202,7 +225,7 @@ export class ShellApp extends LitElement {
               <p><strong>${zone.label}</strong> isn't wired up yet.</p>
               <p>
                 Set <code>VITE_${zone.key.toUpperCase()}_URL</code> in <code>.env.local</code> to
-                that member's deployed <code>${zone.tag}</code> bundle URL.
+                that member's ${expected}.
               </p>
             </div>`
           : ''}

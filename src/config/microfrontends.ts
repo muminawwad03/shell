@@ -3,43 +3,58 @@ export interface MicrofrontendConfig {
   label: string;
   /** URL path prefix this zone owns in the shell, e.g. "/" or "/cart". */
   path: string;
-  /** Custom element tag name the microfrontend registers, e.g. "catalog-app". */
-  tag: string;
   /**
-   * Full URL to the microfrontend's deployed JS entry (an ES module that
-   * registers `tag` as a custom element as a side effect). Read from a
-   * Vite env var so each deploy target (local dev / preview / prod) can
-   * point at a different live URL without code changes. `undefined`
-   * means "not deployed yet" — the shell shows a placeholder instead.
+   * How this zone is composed:
+   * - "component": dynamically import `url` (an ES module that registers
+   *   `tag` as a custom element as a side effect) and mount `tag`.
+   * - "iframe": embed `url` directly in an <iframe>. Fallback for a
+   *   microfrontend that hasn't (yet) exposed itself as a custom element —
+   *   works with zero changes on that member's side, at the cost of no
+   *   shared routing/state with the rest of the shell (per the project
+   *   brief's iframe-composition tradeoff).
    */
-  scriptUrl: string | undefined;
+  embedMode: 'component' | 'iframe';
+  /** Custom element tag name — required when embedMode is "component". */
+  tag?: string;
+  /**
+   * Live deployed URL for this zone: a JS entry (component mode) or a
+   * page URL (iframe mode). Read from a Vite env var so each deploy
+   * target can point at a different live URL without code changes.
+   * `undefined` means "not deployed yet" — the shell shows a placeholder.
+   */
+  url: string | undefined;
 }
 
 // Set these in a local .env file, e.g.:
 //   VITE_CATALOG_URL=http://localhost:5173/src/main.ts   (Mu'min's dev server)
-//   VITE_CART_URL=https://cart-<member>.vercel.app/cart-app.js
+//   VITE_CART_URL=https://toy-store-cart.vercel.app        (Moayad — iframe for now)
 //   VITE_ACCOUNT_URL=https://account-<member>.vercel.app/account-app.js
 export const MICROFRONTENDS: MicrofrontendConfig[] = [
   {
     key: 'catalog',
     label: 'Shop',
     path: '/',
+    embedMode: 'component',
     tag: 'catalog-app',
-    scriptUrl: import.meta.env.VITE_CATALOG_URL,
+    url: import.meta.env.VITE_CATALOG_URL,
   },
   {
     key: 'cart',
     label: 'Cart',
     path: '/cart',
-    tag: 'cart-app',
-    scriptUrl: import.meta.env.VITE_CART_URL,
+    // toy-store-cart is a plain React SPA (mounts into #root directly),
+    // not yet exposed as a custom element — iframe until Moayad wires up
+    // react-to-webcomponent to match the catalog/account pattern.
+    embedMode: 'iframe',
+    url: import.meta.env.VITE_CART_URL,
   },
   {
     key: 'account',
     label: 'Account',
     path: '/account',
+    embedMode: 'component',
     tag: 'account-app',
-    scriptUrl: import.meta.env.VITE_ACCOUNT_URL,
+    url: import.meta.env.VITE_ACCOUNT_URL,
   },
 ];
 

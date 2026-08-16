@@ -4,9 +4,13 @@ Shared responsibility (Mu'min Awwad, Moayad Naser, Danah AlDajani) — integrati
 
 Composes the three microfrontends — `catalog` (Mu'min, Lit), `cart` (Moayad, React), `account` (Danah, Vue) — into one app by loading each one's **live deployed** JS bundle, not a local copy.
 
-## Integration method: Web Components
+## Integration method: Web Components (+ iframe fallback per zone)
 
-Each microfrontend deploys itself as a custom element (`catalog-app`, `cart-app`, `account-app`). The shell dynamically `import()`s each one's deployed script URL and drops the tag into the page. This was the method the group's brief recommended, and it's the natural fit for a mixed Lit/React/Vue team: whatever framework a component is built in, it compiles down to a plain custom element, and the shell doesn't need to know or care which framework was used underneath.
+Each microfrontend is meant to deploy itself as a custom element (`catalog-app`, `cart-app`, `account-app`). The shell dynamically `import()`s each one's deployed script URL and drops the tag into the page. This was the method the group's brief recommended, and it's the natural fit for a mixed Lit/React/Vue team: whatever framework a component is built in, it compiles down to a plain custom element, and the shell doesn't need to know or care which framework was used underneath.
+
+Not every member's app is exposed that way yet, though — `cart` (Moayad) is currently a plain React SPA that mounts itself into `#root`, with no custom element and no stable bundle filename. Rather than block on that, each zone in [`src/config/microfrontends.ts`](src/config/microfrontends.ts) declares its own `embedMode`: `"component"` for the dynamic-import path above, or `"iframe"` — just embeds the deployed page directly in an `<iframe>`, which needs zero changes on that member's side. `cart` uses `"iframe"` for now; swap it to `"component"` once `toy-store-cart` adds `react-to-webcomponent` (see the brief's resources list) and exposes a stable `cart-app.js`. Tradeoff: an iframed zone doesn't share the shell's routing/state — its internal navigation stays inside the iframe.
+
+Both modes reuse the same "keep the element alive, just hide it" logic when switching tabs, so an iframe's in-progress state (e.g. items already in the cart) survives navigating away and back, same as a component-mode app would.
 
 ## How routing doesn't collide
 
@@ -51,5 +55,5 @@ Shared Material 3 color/type/spacing tokens live in [`src/styles/theme.css`](src
 
 - Shell: https://shell-six-murex.vercel.app
 - Catalog: https://catalog-kappa-seven.vercel.app
-- Cart: _TBD_
+- Cart: https://toy-store-cart.vercel.app (embedded via iframe)
 - Account: _TBD_
