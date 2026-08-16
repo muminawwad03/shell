@@ -49,7 +49,7 @@ Shared Material 3 color/type/spacing tokens live in [`src/styles/theme.css`](src
 
 ## Live URLs
 
-- Shell: _TBD_
-- Catalog: _TBD_
+- Shell: https://shell-six-murex.vercel.app
+- Catalog: https://catalog-kappa-seven.vercel.app
 - Cart: _TBD_
 - Account: _TBD_
